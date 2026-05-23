@@ -1,101 +1,71 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Card } from '../ui/Card';
-import { format, differenceInDays } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { differenceInDays } from 'date-fns';
 import { Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 type ExpiringProduct = {
-  producto_id: string;
-  producto_nombre: string;
+  id: string;
+  nombre_producto: string;
   numero_lote: string;
-  stock_actual: number;
   fecha_vencimiento: string;
-  condicion: string;
+  stock_actual: number;
+  dias_restantes: number;
+  bodega_nombre: string;
 };
 
-interface ExpiringProductsListProps {
-  daysThreshold: number;
-  title: string;
-}
+interface Props { daysThreshold: number; title: string; }
 
-export function ExpiringProductsList({ daysThreshold, title }: ExpiringProductsListProps) {
+export function ExpiringProductsList({ daysThreshold, title }: Props) {
   const [products, setProducts] = useState<ExpiringProduct[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchExpiringProducts = async () => {
+    (async () => {
       setLoading(true);
       try {
         const { data, error } = await supabase.rpc('get_expiring_products_list', { days_threshold: daysThreshold });
-        if (error) {
-          throw error;
-        }
+        if (error) throw error;
         setProducts(data || []);
       } catch {
-        toast.error('Error al cargar productos por vencer');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchExpiringProducts();
+        toast.error('Error al cargar vencimientos');
+      } finally { setLoading(false); }
+    })();
   }, [daysThreshold]);
 
   if (loading) {
-    return (
-      <Card className="p-4 col-span-full">
-        <div className="flex items-center justify-center h-32">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      </Card>
-    );
+    return <Card className="p-4"><div className="flex items-center justify-center h-24"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div></div></Card>;
   }
 
   return (
-    <Card className="p-4 col-span-full">
-      <div className="flex items-center mb-4">
-        <Clock className="h-6 w-6 text-red-500 mr-2" />
-        <h2 className="text-lg font-semibold text-gray-800">{title} ({products.length})</h2>
+    <Card className="p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Clock className="h-5 w-5 text-red-500" />
+        <h3 className="font-bold text-gray-800 text-sm">{title} ({products.length})</h3>
       </div>
-
       {products.length === 0 ? (
-        <p className="text-gray-600">No hay productos {title.toLowerCase()} actualmente.</p>
+        <p className="text-gray-400 text-xs">Sin productos por vencer.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Stock Actual</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Vencimiento</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Condición</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {products.map((product, idx) => {
-                const daysLeft = product.fecha_vencimiento ? differenceInDays(new Date(product.fecha_vencimiento), new Date()) : 999;
-                let statusClass = 'text-gray-700';
-                if (daysLeft < 15) statusClass = 'text-red-700 font-bold bg-red-100';
-                else if (daysLeft < 30) statusClass = 'text-yellow-700 font-bold bg-yellow-100';
-                else statusClass = 'text-green-700 bg-green-100';
-
-                return (
-                  <tr key={idx}>
-                    <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">{product.producto_nombre}</td>
-                    <td className="px-4 py-2 whitespace-nowrap text-sm font-semibold">{product.stock_actual}</td>
-                    <td className="px-4 py-2 whitespace-nowrap text-sm">
-                      <span className={`px-2 py-1 rounded-full ${statusClass}`}>
-                        {product.fecha_vencimiento ? format(new Date(product.fecha_vencimiento), 'dd MMM yyyy', { locale: es }) : 'N/A'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{product.condicion}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="space-y-1.5 max-h-64 overflow-y-auto">
+          {products.map((p, idx) => {
+            const days = p.dias_restantes ?? (p.fecha_vencimiento ? differenceInDays(new Date(p.fecha_vencimiento), new Date()) : 999);
+            const badge = days < 7 ? 'bg-red-100 text-red-700 font-bold' : days < 15 ? 'bg-orange-100 text-orange-700' : 'bg-yellow-100 text-yellow-700';
+            return (
+              <div key={`${p.id}-${idx}`} className="flex items-center justify-between gap-2 py-1.5 px-2 rounded-lg hover:bg-gray-50 text-xs">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-800 truncate">{p.nombre_producto}</p>
+                  <p className="text-gray-400 truncate">Lote: {p.numero_lote} &middot; {p.bodega_nombre}</p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <div className="font-bold text-gray-700">{p.stock_actual}</div>
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${badge}`}>
+                    {days}d
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </Card>
