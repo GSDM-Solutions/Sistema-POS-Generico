@@ -48,7 +48,7 @@ export function CriticalStockList() {
             <div key={p.maestro_producto_id} className="flex items-center justify-between gap-2 py-1.5 px-2 rounded-lg hover:bg-gray-50 text-xs">
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-gray-800 truncate">{p.nombre}</p>
-                <p className="text-gray-400 truncate">{p.categoria || 'N/A'} &middot; {p.unidad_medida || 'UN'}</p>
+                <p className="text-gray-400 truncate">{p.categoria || 'N/A'}</p>
               </div>
               <div className="text-right flex-shrink-0">
                 <span className="text-red-600 font-bold">{p.stock_actual}</span>
