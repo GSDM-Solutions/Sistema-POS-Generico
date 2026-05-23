@@ -9,7 +9,7 @@ import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import { CriticalStockList } from '../components/dashboard/CriticalStockList';
 import { ExpiringProductsList } from '../components/dashboard/ExpiringProductsList';
-import { ShoppingCart, Truck, Package, Users, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Truck, Package, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Skeleton } from '../components/ui/Skeleton';
 
@@ -137,10 +137,10 @@ export function Dashboard() {
       {/* Quick Actions Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         <QuickActionCard
-          to="/pos"
+          to="/preventas/nueva"
           icon={ShoppingCart}
-          title="Punto de Venta"
-          desc="Iniciar nueva venta"
+          title="Pre-Venta"
+          desc="Crear nueva preventa"
           gradient="bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700"
           iconColor="text-emerald-600"
         />
@@ -161,10 +161,10 @@ export function Dashboard() {
           iconColor="text-purple-600"
         />
         <QuickActionCard
-          to="/customers"
-          icon={Users}
-          title="Clientes"
-          desc="Gestionar cuentas"
+          to="/audit"
+          icon={ArrowRight}
+          title="Auditoria"
+          desc="Conteo y ajustes"
           gradient="bg-gradient-to-br from-amber-500 via-orange-500 to-rose-600"
           iconColor="text-orange-600"
         />
