@@ -38,13 +38,13 @@ export function CriticalStockList() {
     <Card className="p-4">
       <div className="flex items-center gap-2 mb-3">
         <AlertTriangle className="h-5 w-5 text-orange-500" />
-        <h3 className="font-bold text-gray-800 text-sm">Stock Critico ({products.length})</h3>
+        <h3 className="font-bold text-gray-800 text-sm">Stock Critico ({products.filter(p => p.stock_actual > 0).length})</h3>
       </div>
-      {products.length === 0 ? (
+      {products.filter(p => p.stock_actual > 0).length === 0 ? (
         <p className="text-gray-400 text-xs">Sin productos en estado critico.</p>
       ) : (
         <div className="space-y-1.5 max-h-64 overflow-y-auto">
-          {products.map(p => (
+          {products.filter(p => p.stock_actual > 0).map(p => (
             <div key={p.maestro_producto_id} className="flex items-center justify-between gap-2 py-1.5 px-2 rounded-lg hover:bg-gray-50 text-xs">
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-gray-800 truncate">{p.nombre}</p>

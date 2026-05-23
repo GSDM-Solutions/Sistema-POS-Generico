@@ -55,7 +55,7 @@ export function ExpiringProductsList({ daysThreshold, title }: Props) {
               <div key={`${p.id}-${idx}`} className="flex items-center justify-between gap-2 py-1.5 px-2 rounded-lg hover:bg-gray-50 text-xs">
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-800 truncate">{p.nombre_producto}</p>
-                  <p className="text-gray-400 truncate">Lote: {p.numero_lote} &middot; {p.bodega_nombre}</p>
+                  <p className="text-gray-400 truncate">Vence: {p.fecha_vencimiento ? new Date(p.fecha_vencimiento).toLocaleDateString('es-CL') : 'S/F'} &middot; {p.bodega_nombre}</p>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <div className="font-bold text-gray-700">{p.stock_actual}</div>
