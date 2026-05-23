@@ -1,0 +1,9 @@
+[build]
+  base = "Sistema-POS-Generico/"
+  command = "npm run build"
+  publish = "Sistema-POS-Generico/dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
