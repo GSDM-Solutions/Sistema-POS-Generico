@@ -91,11 +91,10 @@ export async function getCachedProducts() {
     const db = await initDB();
     const products = await db.getAll('products');
     
-    // Filtrar productos cacheados hace menos de 24 horas
-    const twentyFourHours = 24 * 60 * 60 * 1000;
+    const CACHE_MAX_AGE = 15 * 60 * 1000;
     const now = Date.now();
     
-    return products.filter(p => (now - p.cached_at) < twentyFourHours);
+    return products.filter(p => (now - p.cached_at) < CACHE_MAX_AGE);
 }
 
 export async function getProductByBarcode(barcode: string) {
@@ -187,6 +186,28 @@ export async function getSetting(key: string) {
     return setting?.value;
 }
 
+export async function saveStockSnapshot(mode: 'offline' | 'periodic' = 'periodic') {
+    const db = await initDB();
+    const products = await db.getAll('products');
+    const now = Date.now();
+
+    const timestamps = products.map(p => p.cached_at).filter(Boolean);
+    const snapshot = {
+        productCount: products.length,
+        takenAt: now,
+        mode,
+        oldestCachedAt: timestamps.length > 0 ? Math.min(...timestamps) : null,
+        newestCachedAt: timestamps.length > 0 ? Math.max(...timestamps) : null,
+    };
+
+    await db.put('settings', { key: 'last_snapshot', value: snapshot });
+    return snapshot;
+}
+
+export async function getStockSnapshot() {
+    return getSetting('last_snapshot');
+}
+
 // Utilidad: Verificar si hay conexión
 export function isOnline() {
     return navigator.onLine;
@@ -205,7 +226,10 @@ export function useOfflinePOS() {
             setIsOffline(false);
             syncPendingSales();
         };
-        const handleOffline = () => setIsOffline(true);
+        const handleOffline = () => {
+            setIsOffline(true);
+            saveStockSnapshot('offline');
+        };
 
         window.addEventListener('online', handleOnline);
         window.addEventListener('offline', handleOffline);
@@ -303,6 +327,18 @@ export function useOfflinePOS() {
         
         return () => clearInterval(interval);
     }, [isOffline, syncPendingSales]);
+
+    // Snapshot periodico del stock cada 1 minuto
+    useEffect(() => {
+        if (isOffline) return;
+
+        saveStockSnapshot('periodic');
+        const interval = setInterval(() => {
+            saveStockSnapshot('periodic');
+        }, 60 * 1000);
+
+        return () => clearInterval(interval);
+    }, [isOffline]);
 
     return {
         isOffline,

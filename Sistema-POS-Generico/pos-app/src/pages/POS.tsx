@@ -13,7 +13,7 @@ import { TransactionReceipt } from '../components/pos/TransactionReceipt';
 import { Modal } from '../components/ui/Modal';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { playAddSound, playRemoveSound, playCheckoutSound } from '../lib/sounds';
-import { useOfflinePOS, cacheProducts, getCachedProducts, saveOfflineSale, saveSetting, getSetting, trackLocalStockUsage, getLocalStockUsage } from '../lib/offlineDB';
+import { useOfflinePOS, cacheProducts, getCachedProducts, saveOfflineSale, saveSetting, getSetting, trackLocalStockUsage, getLocalStockUsage, getStockSnapshot } from '../lib/offlineDB';
 
 type TipoDocumento = 'BOLETA' | 'FACTURA';
 type MetodoPago = 'CASH' | 'CARD' | 'TRANSFER' | 'CREDIT';
@@ -161,6 +161,7 @@ export function POS() {
     const [voucherNumber, setVoucherNumber] = useState('');
     const [cashReceived, setCashReceived] = useState('');
     const [scanError, setScanError] = useState<string | null>(null);
+    const [cacheMinutesOld, setCacheMinutesOld] = useState<number | null>(null);
 
     useEffect(() => {
         setVoucherNumber('');
@@ -190,7 +191,7 @@ export function POS() {
         if (isOffline) return;
         const interval = setInterval(() => {
             fetchProducts();
-        }, 5 * 60 * 1000);
+        }, 60 * 1000);
         return () => clearInterval(interval);
     }, [isOffline]);
 
@@ -207,9 +208,24 @@ export function POS() {
 
             if (isOffline) {
                 const cached = await getCachedProducts();
+                const snapshot = await getStockSnapshot();
+                if (snapshot?.takenAt) {
+                    const mins = Math.round((Date.now() - snapshot.takenAt) / 60000);
+                    setCacheMinutesOld(mins);
+                }
                 if (cached.length > 0) {
                     setProducts(cached);
-                    toast.success('Usando productos en caché (sin conexión)');
+                    const minsOld = snapshot?.takenAt
+                        ? Math.round((Date.now() - snapshot.takenAt) / 60000)
+                        : '?';
+                    if (minsOld > 5) {
+                        toast.error(`Cache desactualizado (${minsOld} min). Stock puede no ser exacto.`, { duration: 5000 });
+                    } else {
+                        toast.success(`Usando productos en cache (hace ${minsOld} min)`);
+                    }
+                } else {
+                    setProducts([]);
+                    toast.error('Cache vacio. Reconecte para operar.', { duration: 0 });
                 }
                 return;
             }
@@ -834,10 +850,20 @@ export function POS() {
     return (
         <>
             {isOffline && (
-                <div className="bg-amber-500 text-amber-900 px-4 py-2 flex items-center justify-between gap-3 shrink-0 text-sm font-semibold">
+                <div className={`px-4 py-2 flex items-center justify-between gap-3 shrink-0 text-sm font-semibold ${
+                    cacheMinutesOld === null ? 'bg-amber-500 text-amber-900' :
+                    cacheMinutesOld > 10 ? 'bg-red-500 text-red-900' :
+                    cacheMinutesOld > 5 ? 'bg-orange-500 text-orange-900' :
+                    'bg-amber-500 text-amber-900'
+                }`}>
                     <div className="flex items-center gap-2">
                         <WifiOff size={16} />
                         <span>SIN CONEXION - Modo offline</span>
+                        {cacheMinutesOld !== null && (
+                            <span className="text-xs opacity-80">
+                                (cache: hace {cacheMinutesOld} min)
+                            </span>
+                        )}
                     </div>
                     <div className="flex items-center gap-4 text-xs">
                         <span className="flex items-center gap-1">
