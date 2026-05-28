@@ -187,25 +187,33 @@ export async function getSetting(key: string) {
 }
 
 export async function saveStockSnapshot(mode: 'offline' | 'periodic' = 'periodic') {
-    const db = await initDB();
-    const products = await db.getAll('products');
-    const now = Date.now();
+    try {
+        const db = await initDB();
+        const products = await db.getAll('products');
+        const now = Date.now();
 
-    const timestamps = products.map(p => p.cached_at).filter(Boolean);
-    const snapshot = {
-        productCount: products.length,
-        takenAt: now,
-        mode,
-        oldestCachedAt: timestamps.length > 0 ? Math.min(...timestamps) : null,
-        newestCachedAt: timestamps.length > 0 ? Math.max(...timestamps) : null,
-    };
+        const timestamps = products.map(p => p.cached_at).filter(Boolean);
+        const snapshot = {
+            productCount: products.length,
+            takenAt: now,
+            mode,
+            oldestCachedAt: timestamps.length > 0 ? Math.min(...timestamps) : null,
+            newestCachedAt: timestamps.length > 0 ? Math.max(...timestamps) : null,
+        };
 
-    await db.put('settings', { key: 'last_snapshot', value: snapshot });
-    return snapshot;
+        await db.put('settings', { key: 'last_snapshot', value: snapshot });
+        return snapshot;
+    } catch {
+        return null;
+    }
 }
 
 export async function getStockSnapshot() {
-    return getSetting('last_snapshot');
+    try {
+        return getSetting('last_snapshot');
+    } catch {
+        return null;
+    }
 }
 
 // Utilidad: Verificar si hay conexión
@@ -224,11 +232,11 @@ export function useOfflinePOS() {
     useEffect(() => {
         const handleOnline = () => {
             setIsOffline(false);
-            syncPendingSales();
+            syncPendingSales().catch(() => {});
         };
         const handleOffline = () => {
             setIsOffline(true);
-            saveStockSnapshot('offline');
+            saveStockSnapshot('offline').catch(() => {});
         };
 
         window.addEventListener('online', handleOnline);
@@ -241,20 +249,30 @@ export function useOfflinePOS() {
     }, []);
 
     useEffect(() => {
-        loadPendingSales();
+        loadPendingSales().catch(() => {});
         
-        // Actualizar contador cada 5 segundos
-        const interval = setInterval(loadPendingSales, 5000);
+        const interval = setInterval(() => {
+            loadPendingSales().catch(() => {});
+        }, 5000);
         return () => clearInterval(interval);
     }, []);
 
     const loadPendingSales = async () => {
-        const pending = await getPendingSales();
-        setPendingSales(pending.length);
+        try {
+            const pending = await getPendingSales();
+            setPendingSales(pending.length);
+        } catch {
+            // IndexedDB no disponible
+        }
     };
 
     const syncPendingSales = useCallback(async () => {
-        const pending = await getPendingSales();
+        let pending;
+        try {
+            pending = await getPendingSales();
+        } catch {
+            return;
+        }
         
         if (pending.length === 0) return;
 
@@ -322,7 +340,7 @@ export function useOfflinePOS() {
         if (isOffline) return;
         
         const interval = setInterval(() => {
-            syncPendingSales();
+            syncPendingSales().catch(() => {});
         }, 30000);
         
         return () => clearInterval(interval);
@@ -332,9 +350,9 @@ export function useOfflinePOS() {
     useEffect(() => {
         if (isOffline) return;
 
-        saveStockSnapshot('periodic');
+        saveStockSnapshot('periodic').catch(() => {});
         const interval = setInterval(() => {
-            saveStockSnapshot('periodic');
+            saveStockSnapshot('periodic').catch(() => {});
         }, 60 * 1000);
 
         return () => clearInterval(interval);
