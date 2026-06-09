@@ -195,6 +195,12 @@ export function POS() {
         return () => clearInterval(interval);
     }, [isOffline]);
 
+    useEffect(() => {
+        if (!isOffline) return;
+        fetchProducts();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOffline]);
+
     const fetchProducts = async () => {
         try {
             searchAbortRef.current?.abort();

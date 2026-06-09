@@ -92,10 +92,10 @@ export async function getCachedProducts() {
     const products = await db.getAll('products');
     
     // Filtrar productos cacheados hace menos de 24 horas
-    const twentyFourHours = 24 * 60 * 60 * 1000;
+    const fifteenMinutes = 15 * 60 * 1000;
     const now = Date.now();
     
-    return products.filter(p => (now - p.cached_at) < twentyFourHours);
+    return products.filter(p => (now - p.cached_at) < fifteenMinutes);
 }
 
 export async function getProductByBarcode(barcode: string) {

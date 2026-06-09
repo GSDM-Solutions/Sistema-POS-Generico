@@ -51,20 +51,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const handleAuthStateChange = async () => {
       setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const { data: userData, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        if (!error && userData) {
-          setUser(userData);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { data: userData, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          if (!error && userData) {
+            setUser(userData);
+          }
+        } else {
+          setUser(null);
         }
-      } else {
+      } catch {
         setUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     handleAuthStateChange(); // Initial check
@@ -81,6 +86,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!error) {
               setUser(userData || null);
             }
+          })
+          .catch(() => {
+            setUser(null);
           });
       } else {
         setUser(null);

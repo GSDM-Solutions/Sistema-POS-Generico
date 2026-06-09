@@ -190,8 +190,14 @@ export function POS() {
         if (isOffline) return;
         const interval = setInterval(() => {
             fetchProducts();
-        }, 5 * 60 * 1000);
+        }, 60 * 1000);
         return () => clearInterval(interval);
+    }, [isOffline]);
+
+    useEffect(() => {
+        if (!isOffline) return;
+        fetchProducts();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOffline]);
 
     const fetchProducts = async () => {
