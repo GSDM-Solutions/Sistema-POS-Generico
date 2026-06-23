@@ -48,24 +48,13 @@ export default defineConfig({
             handler: 'NetworkFirst',
             options: {
               cacheName: 'supabase-api',
+              networkTimeoutSeconds: 5,
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 // 24 horas
+                maxAgeSeconds: 60 * 60 // 1 hora
               },
               cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          },
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'supabase-rest',
-              networkTimeoutSeconds: 3,
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 // 1 hora
+                statuses: [200]
               }
             }
           }
